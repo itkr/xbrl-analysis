@@ -1,5 +1,15 @@
+from dataclasses import dataclass
 from bs4 import BeautifulSoup
 from edinet_xbrl.edinet_xbrl_parser import EdinetXbrlParser
+
+
+@dataclass
+class Context:
+    context_id: str
+    # identifier: str
+    startDate: str | None = None
+    endDate: str | None = None
+    instant: str | None = None
 
 
 def get_taxonomy(xbrl_file_path):
@@ -19,25 +29,29 @@ def get_contexts(xbrl_file_path):
     #     <xbrli:endDate>2017-03-31</xbrli:endDate>
     #   </xbrli:period>
     # </xbrli:context>
-
     with open(xbrl_file_path, 'r') as f:
         soup = BeautifulSoup(f.read(), 'lxml')
-
-    contexts = soup.find_all('xbrli:context')
-    for context in contexts:
-        print(context.get('id'))
+    contexts = []
+    for context in soup.find_all('xbrli:context'):
         period = context.find('xbrli:period')
-        identifier = context.find('xbrli:entity').find('xbrli:identifier')
-        print(f'    {identifier.get("scheme")} {identifier.text}')
         startDate = period.find('xbrli:startdate')
         endDate = period.find('xbrli:enddate')
         instant = period.find('xbrli:instant')
         if startDate and endDate:
-            print(f'    {startDate.text} - {endDate.text}')
-        if instant:
-            print(f'    {instant.text}')
-
-    return
+            contexts.append(Context(
+                context.get('id'),
+                # context.find('xbrli:entity').find('xbrli:identifier'),
+                startDate=startDate.text,
+                endDate=endDate.text))
+        elif instant:
+            contexts.append(Context(
+                context.get('id'),
+                # context.find('xbrli:entity').find('xbrli:identifier'),
+                instant=instant.text
+            ))
+        else:
+            raise ValueError
+    return contexts
 
 
 def is_html(value):
@@ -63,7 +77,9 @@ def load():
         print(taxonomy_name)
         print('  ', len(list(filter(lambda x: x.startswith(taxonomy_name), keys))))
 
-    get_contexts(xbrl_file_path)
+    contexts = get_contexts(xbrl_file_path)
+    for context in contexts:
+        print(context)
 
     # keys = list(filter(lambda x: x.startswith('jpigp_cor:'), keys))
     for key in keys:
