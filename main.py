@@ -7,9 +7,12 @@ from edinet_xbrl.edinet_xbrl_parser import EdinetXbrlParser
 class Context:
     context_id: str
     # identifier: str
-    startDate: str | None = None
-    endDate: str | None = None
-    instant: str | None = None
+    # startDate: str | None = None
+    # endDate: str | None = None
+    # instant: str | None = None
+    startDate: str = None
+    endDate: str = None
+    instant: str = None
 
 
 def get_taxonomy(xbrl_file_path):
@@ -37,18 +40,11 @@ def get_contexts(xbrl_file_path):
         startDate = period.find('xbrli:startdate')
         endDate = period.find('xbrli:enddate')
         instant = period.find('xbrli:instant')
+        context_id = context.get('id')
         if startDate and endDate:
-            contexts.append(Context(
-                context.get('id'),
-                # context.find('xbrli:entity').find('xbrli:identifier'),
-                startDate=startDate.text,
-                endDate=endDate.text))
+            contexts.append(Context(context_id, startDate=startDate.text, endDate=endDate.text))
         elif instant:
-            contexts.append(Context(
-                context.get('id'),
-                # context.find('xbrli:entity').find('xbrli:identifier'),
-                instant=instant.text
-            ))
+            contexts.append(Context(context_id, instant=instant.text))
         else:
             raise ValueError
     return contexts
@@ -72,16 +68,31 @@ def load():
     edinet_xbrl_object = parser.parse_file(xbrl_file_path)
 
     keys = edinet_xbrl_object.get_keys()
+
+    # 利用タクソノミ一覧
     for taxonomy in sorted(get_taxonomy(xbrl_file_path)):
         taxonomy_name = taxonomy.split(':')[1]
+        # print(taxonomy)
         print(taxonomy_name)
-        print('  ', len(list(filter(lambda x: x.startswith(taxonomy_name), keys))))
+        if taxonomy_name.startswith('jpcrp'):
+            print('企業内容等の開示に関する内閣府令')
+        if taxonomy_name.startswith('jppfs'):
+            print('日本基準の勘定科目')
+        if taxonomy_name.startswith('jpigp'):
+            print('国際会計基準(IFRS)の勘定科目')
+        if taxonomy_name.startswith('jpdei'):
+            print('文書定義 - 提出文書のメタデータ(提出日付やタイトルなど)を定義するタクソノミ')
+        print(f'  {len(list(filter(lambda x: x.startswith(taxonomy_name), keys)))}')
 
-    contexts = get_contexts(xbrl_file_path)
-    for context in contexts:
-        print(context)
+    # コンテキスト一覧
+    # contexts = get_contexts(xbrl_file_path)
+    # for context in contexts:
+        # print(context)
 
-    # keys = list(filter(lambda x: x.startswith('jpigp_cor:'), keys))
+    # link 6
+    # xbrldi 1
+    # xbrli 14
+    keys = list(filter(lambda x: x.startswith('xbrldi:'), keys))
     for key in keys:
         print(key)
         data_list = edinet_xbrl_object.get_data_list(key)
