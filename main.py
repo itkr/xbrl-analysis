@@ -15,11 +15,10 @@ class Context:
     instant: str = None
 
 
-def get_taxonomy(xbrl_file_path):
+def get_taxonomy_names(xbrl_file_path):
     with open(xbrl_file_path, 'r') as f:
         soup = BeautifulSoup(f.read(), 'lxml')
-    xbrli = soup.find('xbrli:xbrl')
-    return list(xbrli.attrs)
+    return [taxonomy.split(':')[1] for taxonomy in list(soup.find('xbrli:xbrl').attrs)]
 
 
 def get_contexts(xbrl_file_path):
@@ -62,6 +61,19 @@ def is_html(value):
     return soup.html.body.p.text != value
 
 
+def print_xbrl_values(edinet_xbrl_object, prefix=None):
+    keys = edinet_xbrl_object.get_keys()
+    if prefix:
+        keys = list(filter(lambda x: x.startswith(prefix), keys))
+    for key in keys:
+        print(key)
+        data_list = edinet_xbrl_object.get_data_list(key)
+        for data in data_list:
+            value = '[HTML]' if is_html(data.get_value()) else data.get_value()
+            print(
+                f'    {data.get_context_ref()} {value} {data.get_unit_ref()} {data.get_decimals()}')
+
+
 def load():
     parser = EdinetXbrlParser()
     xbrl_file_path = 'public.xbrl'
@@ -70,37 +82,26 @@ def load():
     keys = edinet_xbrl_object.get_keys()
 
     # 利用タクソノミ一覧
-    for taxonomy in sorted(get_taxonomy(xbrl_file_path)):
-        taxonomy_name = taxonomy.split(':')[1]
-        # print(taxonomy)
-        print(taxonomy_name)
-        if taxonomy_name.startswith('jpcrp'):
-            print('企業内容等の開示に関する内閣府令')
-        if taxonomy_name.startswith('jppfs'):
-            print('日本基準の勘定科目')
-        if taxonomy_name.startswith('jpigp'):
-            print('国際会計基準(IFRS)の勘定科目')
-        if taxonomy_name.startswith('jpdei'):
-            print('文書定義 - 提出文書のメタデータ(提出日付やタイトルなど)を定義するタクソノミ')
-        print(f'  {len(list(filter(lambda x: x.startswith(taxonomy_name), keys)))}')
+    for taxonomy in sorted(get_taxonomy_names(xbrl_file_path)):
+        if taxonomy.startswith('jpcrp'):
+            print(taxonomy, f'{taxonomy} (企業内容等の開示に関する内閣府令)')
+        elif taxonomy.startswith('jppfs'):
+            print(taxonomy, f'{taxonomy} (日本基準の勘定科目)')
+        elif taxonomy.startswith('jpigp'):
+            print(taxonomy, f'{taxonomy} (国際会計基準(IFRS)の勘定科目)')
+        elif taxonomy.startswith('jpdei'):
+            print(taxonomy, f'{taxonomy} (文書定義 - 提出文書のメタデータ(提出日付やタイトルなど)を定義するタクソノミ)')
+        else:
+            print(taxonomy)
+
+        print(f'  {len(list(filter(lambda x: x.startswith(taxonomy), keys)))}')
 
     # コンテキスト一覧
     # contexts = get_contexts(xbrl_file_path)
     # for context in contexts:
         # print(context)
 
-    # link 6
-    # xbrldi 1
-    # xbrli 14
-    keys = list(filter(lambda x: x.startswith('xbrldi:'), keys))
-    for key in keys:
-        print(key)
-        data_list = edinet_xbrl_object.get_data_list(key)
-        for data in data_list:
-            # int(data.get_value())
-            value = '[HTML]' if is_html(data.get_value()) else data.get_value()
-            print(
-                f'    {data.get_context_ref()} {value} {data.get_unit_ref()} {data.get_decimals()}')
+    # print_xbrl_values(edinet_xbrl_object)
 
 
 def main():
