@@ -74,6 +74,21 @@ def print_xbrl_values(edinet_xbrl_object, prefix=None):
                 f'    {data.get_context_ref()} {value} {data.get_unit_ref()} {data.get_decimals()}')
 
 
+taxonomy_dictionary = {
+    'jpcrp': '企業内容等の開示に関する内閣府令',
+    'jppfs': '日本基準の勘定科目',
+    'jpigp': '国際会計基準(IFRS)の勘定科目',
+    'jpdei': '文書定義 - 提出文書のメタデータ(提出日付やタイトルなど)を定義するタクソノミ)',
+}
+
+
+def get_taxonomy_description(taxonomy_name):
+    for key, value in taxonomy_dictionary.items():
+        if taxonomy_name.startswith(key):
+            return value
+    return ''
+
+
 def load():
     parser = EdinetXbrlParser()
     xbrl_file_path = 'public.xbrl'
@@ -83,17 +98,7 @@ def load():
 
     # 利用タクソノミ一覧
     for taxonomy in sorted(get_taxonomy_names(xbrl_file_path)):
-        if taxonomy.startswith('jpcrp'):
-            print(taxonomy, f'{taxonomy} (企業内容等の開示に関する内閣府令)')
-        elif taxonomy.startswith('jppfs'):
-            print(taxonomy, f'{taxonomy} (日本基準の勘定科目)')
-        elif taxonomy.startswith('jpigp'):
-            print(taxonomy, f'{taxonomy} (国際会計基準(IFRS)の勘定科目)')
-        elif taxonomy.startswith('jpdei'):
-            print(taxonomy, f'{taxonomy} (文書定義 - 提出文書のメタデータ(提出日付やタイトルなど)を定義するタクソノミ)')
-        else:
-            print(taxonomy)
-
+        print(taxonomy, get_taxonomy_description(taxonomy))
         print(f'  {len(list(filter(lambda x: x.startswith(taxonomy), keys)))}')
 
     # コンテキスト一覧
