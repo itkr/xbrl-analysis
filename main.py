@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from datetime import datetime
+
 from bs4 import BeautifulSoup
 from edinet_xbrl.edinet_xbrl_parser import EdinetXbrlParser
 
@@ -41,7 +43,8 @@ def get_contexts(xbrl_file_path):
         instant = period.find('xbrli:instant')
         context_id = context.get('id')
         if startDate and endDate:
-            contexts.append(Context(context_id, startDate=startDate.text, endDate=endDate.text))
+            contexts.append(
+                Context(context_id, startDate=startDate.text, endDate=endDate.text))
         elif instant:
             contexts.append(Context(context_id, instant=instant.text))
         else:
@@ -61,15 +64,53 @@ def is_html(value):
     return soup.html.body.p.text != value
 
 
+def is_number(value):
+    try:
+        int(value)
+        return True
+    except Exception:
+        return False
+
+
+def is_boolean_text(value):
+    if value in ['true', 'false']:
+        return True
+    return False
+
+
+def is_date_text(value):
+    try:
+        datetime.strptime(value, '%Y-%m-%d')
+        return True
+    except ValueError:
+        return False
+
+
+def convert_value(taxonomy_name: str, key: str, value):
+    # TODO: タクソノミ定義をもとにコンバート
+    if not value:
+        return value
+    if is_html(value):
+        # return BeautifulSoup(value, 'lxml').prettify()
+        return '[HTML]'
+    if is_number(value):
+        return float(value) if '.' in value else int(value)
+    if is_boolean_text(value):
+        return True if value == 'true' else False
+    if is_date_text(value):
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    return value
+
+
 def print_xbrl_values(edinet_xbrl_object, prefix=None):
     keys = edinet_xbrl_object.get_keys()
     if prefix:
         keys = list(filter(lambda x: x.startswith(prefix), keys))
     for key in keys:
         print(key)
-        data_list = edinet_xbrl_object.get_data_list(key)
+        data_list = edinet_xbrl_object.get_data_list(key, auto_lower=False)
         for data in data_list:
-            value = '[HTML]' if is_html(data.get_value()) else data.get_value()
+            value = convert_value(key.split(':')[0], key, data.get_value())
             print(
                 f'    {data.get_context_ref()} {value} {data.get_unit_ref()} {data.get_decimals()}')
 
@@ -107,6 +148,7 @@ def load():
         # print(context)
 
     # print_xbrl_values(edinet_xbrl_object)
+    print_xbrl_values(edinet_xbrl_object, 'jpdei_cor')
 
 
 def main():
