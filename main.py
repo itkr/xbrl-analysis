@@ -167,6 +167,12 @@ class XBRL:
     def to_pandas(self):
         pass
 
+    def make_balance_sheet(self, context_ref=None):
+        pass
+
+    def make_profit_and_loss_statement(self, context_ref=None):
+        pass
+
 
 def sample():
     xbrl = XBRL()
