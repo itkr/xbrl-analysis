@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Union
 
 from bs4 import BeautifulSoup
 from edinet_xbrl.edinet_xbrl_parser import EdinetXbrlParser
@@ -84,7 +85,7 @@ def is_date_text(value):
         return False
 
 
-def convert_value(taxonomy_name: str, key: str, value):
+def convert_value(taxonomy_name: str, key_name: str, value):
     # TODO: タクソノミ定義をもとにコンバート
     if not value:
         return value
@@ -100,17 +101,47 @@ def convert_value(taxonomy_name: str, key: str, value):
     return value
 
 
+@dataclass
+class XbrlData:
+    taxonomy_name: str
+    context_ref: str  # Contextがたにする
+    decimals: int
+    key_name: str
+    unit_ref: int
+    value: Union[None, int, float, str, BeautifulSoup]
+
+    def __repr__(self):
+        return f'    {self.context_ref} {self.value} {self.unit_ref} {self.decimals}'
+
+
 def print_xbrl_values(edinet_xbrl_object, prefix=None):
     keys = edinet_xbrl_object.get_keys()
     if prefix:
         keys = list(filter(lambda x: x.startswith(prefix), keys))
+    result = {}
+
     for key in keys:
-        print(key)
         data_list = edinet_xbrl_object.get_data_list(key, auto_lower=False)
-        for data in data_list:
-            value = convert_value(key.split(':')[0], key, data.get_value())
-            print(
-                f'    {data.get_context_ref()} {value} {data.get_unit_ref()} {data.get_decimals()}')
+        try:
+            taxonomy_name, key_name = key.split(':')
+        except ValueError:
+            # 'html', 'body' が入ってくる
+            continue
+
+        if taxonomy_name not in result.keys():
+            result[taxonomy_name] = []
+
+        print(key)
+        # TODO: これだとkeyの改装を無視してtaxonomyごとにdataを入れてしまっている。これでいいか？
+        result[taxonomy_name] = [XbrlData(
+            taxonomy_name=taxonomy_name,
+            context_ref=data.get_context_ref(),
+            decimals=data.get_decimals(),
+            key_name=key_name,
+            unit_ref=data.get_unit_ref(),
+            value=convert_value(taxonomy_name, key_name, data.get_value())) for data in data_list]
+        for v in result[taxonomy_name]:
+            print(v)
 
 
 taxonomy_dictionary = {
@@ -145,8 +176,8 @@ def load():
     # for context in contexts:
         # print(context)
 
-    # print_xbrl_values(edinet_xbrl_object)
-    print_xbrl_values(edinet_xbrl_object, 'jpdei_cor')
+    print_xbrl_values(edinet_xbrl_object)
+    # print_xbrl_values(edinet_xbrl_object, 'jpdei_cor')
 
 
 def main():
