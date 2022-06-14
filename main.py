@@ -73,9 +73,7 @@ def is_number(value):
 
 
 def is_boolean_text(value):
-    if value in ['true', 'false']:
-        return True
-    return False
+    return value in ['true', 'false']
 
 
 def is_date_text(value):
