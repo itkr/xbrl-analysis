@@ -1,21 +1,33 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Union
+from typing import Optional, Union
 
 from bs4 import BeautifulSoup
 from edinet_xbrl.edinet_xbrl_parser import EdinetXbrlParser
+
+# TODO: edinet_xbrlを使うのをやめる
+
+
+@dataclass
+class XbrlData:
+    taxonomy_name: str
+    context_ref: str  # Contextがたにする
+    decimals: int
+    key_name: str
+    unit_ref: int
+    value: Union[None, bool, int, float, str, BeautifulSoup]
+
+    def __repr__(self):
+        return f'    {self.context_ref} {self.value} {self.unit_ref} {self.decimals}'
 
 
 @dataclass
 class Context:
     context_id: str
     # identifier: str
-    # startDate: str | None = None
-    # endDate: str | None = None
-    # instant: str | None = None
-    startDate: str = None
-    endDate: str = None
-    instant: str = None
+    startDate: Optional[str]
+    endDate: Optional[str]
+    instant: Optional[str]
 
 
 def get_taxonomy_names(xbrl_file_path):
@@ -85,7 +97,8 @@ def is_date_text(value):
         return False
 
 
-def convert_value(taxonomy_name: str, key_name: str, value):
+def convert_value(taxonomy_name: str, key_name: str, value) -> Union[
+        float, int, str, bool, None, BeautifulSoup]:
     # TODO: タクソノミ定義をもとにコンバート
     if not value:
         return value
@@ -99,19 +112,6 @@ def convert_value(taxonomy_name: str, key_name: str, value):
     if is_date_text(value):
         return datetime.strptime(value, '%Y-%m-%d').date()
     return value
-
-
-@dataclass
-class XbrlData:
-    taxonomy_name: str
-    context_ref: str  # Contextがたにする
-    decimals: int
-    key_name: str
-    unit_ref: int
-    value: Union[None, int, float, str, BeautifulSoup]
-
-    def __repr__(self):
-        return f'    {self.context_ref} {self.value} {self.unit_ref} {self.decimals}'
 
 
 def print_xbrl_values(edinet_xbrl_object, prefix=None):
@@ -134,14 +134,43 @@ def print_xbrl_values(edinet_xbrl_object, prefix=None):
         print(key)
         # TODO: これだとkeyの改装を無視してtaxonomyごとにdataを入れてしまっている。これでいいか？
         result[taxonomy_name] = [XbrlData(
-            taxonomy_name=taxonomy_name,
             context_ref=data.get_context_ref(),
             decimals=data.get_decimals(),
             key_name=key_name,
-            unit_ref=data.get_unit_ref(),
-            value=convert_value(taxonomy_name, key_name, data.get_value())) for data in data_list]
+            taxonomy_name=taxonomy_name,
+            value=convert_value(taxonomy_name, key_name, data.get_value()),
+            unit_ref=data.get_unit_ref()) for data in data_list]
         for v in result[taxonomy_name]:
             print(v)
+
+    # return result
+
+
+# イメージ
+class XBRL:
+
+    def __init__(self):
+        pass
+
+    def get_taxonomies(self):
+        return []
+
+    def get_contexts(self):
+        return []
+
+    def get_data_by(self, **kwargs):
+        return ''
+
+    def to_csv(self):
+        pass
+
+    def to_pandas(self):
+        pass
+
+
+def sample():
+    xbrl = XBRL()
+    xbrl.get_data_by(taxonomy='jpdei', context_ref='context')
 
 
 taxonomy_dictionary = {
