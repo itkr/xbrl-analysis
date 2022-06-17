@@ -1,3 +1,4 @@
-pandas
-jupyter
+# pandas
+# jupyter
 edinet-xbrl
+xmlschema

@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 from datetime import datetime
+from pprint import pprint
 from typing import Optional, Union
 
+import requests
+import xmlschema
 from bs4 import BeautifulSoup
 from edinet_xbrl.edinet_xbrl_parser import EdinetXbrlParser
 
@@ -13,6 +16,9 @@ from edinet_xbrl.edinet_xbrl_parser import EdinetXbrlParser
 #                     xbrl_data_value
 
 # TODO: edinet_xbrlを使うのをやめる
+
+
+XBRL_DIR = './xbrl_dir'
 
 
 @dataclass
@@ -97,6 +103,21 @@ class XBRLDataValueConverter:
             return False
 
 
+# TODO: クラス名
+class Taxonomies:
+
+    def __init__(self, taxonomy_file_path):
+        self.file_path = taxonomy_file_path
+        self.load()
+
+    def load(self):
+        xsd = xmlschema.XMLSchema(self.file_path)
+        # print(xsd.namespaces)
+        # pprint(xsd.imports)
+        # pprint(xsd.to_dict(f'{XBRL_DIR}/jpcrp030000-asr-001_E04837-000_2021-03-31_01_2021-06-23_lab.xml'))
+        # pprint(xsd.to_dict('http://disclosure.edinet-fsa.go.jp/taxonomy/jppfs/2020-11-01/label/jppfs_2020-11-01_lab.xml'))
+
+
 class Taxonomy:
 
     taxonomy_dictionary = {
@@ -106,12 +127,18 @@ class Taxonomy:
         'jpdei': '文書定義 - 提出文書のメタデータ(提出日付やタイトルなど)を定義するタクソノミ)',
     }
 
-    @classmethod
-    def get_description(cls, taxonomy_name):
-        for key, value in cls.taxonomy_dictionary.items():
-            if taxonomy_name.startswith(key):
+    def __init__(self, taxonomy_name):
+        self.name = taxonomy_name
+
+    def __repr__(self):
+        return f'<Taxonomy {self.name}>'
+
+    @property
+    def description(self):
+        for key, value in self.__class__.taxonomy_dictionary.items():
+            if self.name.startswith(key):
                 return value
-        return ''
+        return 'unknown'
 
 
 class XBRL:
@@ -157,11 +184,7 @@ class XBRL:
         return result
 
     def get_taxonomies(self):
-        # TODO: 実装
-        raise
-
-    def get_taxonomy_names(self):
-        return [taxonomy.split(':')[1]
+        return [Taxonomy(taxonomy.split(':')[1])
                 for taxonomy in list(self.soup.find('xbrli:xbrl').attrs)]
 
     def get_contexts(self):
@@ -222,20 +245,23 @@ def main():
     xbrl = XBRL('public.xbrl')
 
     # 利用タクソノミ一覧
-    for taxonomy_name in sorted(xbrl.get_taxonomy_names()):
-        print(taxonomy_name, Taxonomy.get_description(taxonomy_name))
-        print(f'  {xbrl.count_keys_by(taxonomy_name)}')
+    for taxonomy in xbrl.get_taxonomies():
+        print(taxonomy, taxonomy.description)
+        print(f'  {xbrl.count_keys_by(taxonomy.name)}')
+
+    t = Taxonomies(
+        f'{XBRL_DIR}/jpcrp030000-asr-001_E04837-000_2021-03-31_01_2021-06-23.xsd')
 
     # コンテキスト一覧
-    contexts = xbrl.get_contexts()
-    for context in contexts:
-        print(context)
+    # for context in xbrl.get_contexts():
+    # print(context)
 
+    # 例
     # xbrl.get_data_by(taxonomy='jpdei', context_ref='context')
 
     # 値の表示
     # xbrl.print_values()
-    xbrl.print_values('jpdei_cor')
+    # xbrl.print_values('jppfs')
 
 
 if __name__ == '__main__':
