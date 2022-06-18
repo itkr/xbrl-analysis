@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from pprint import pprint
@@ -112,10 +113,14 @@ class Taxonomies:
 
     def load(self):
         xsd = xmlschema.XMLSchema(self.file_path)
-        # print(xsd.namespaces)
-        # pprint(xsd.imports)
-        # pprint(xsd.to_dict(f'{XBRL_DIR}/jpcrp030000-asr-001_E04837-000_2021-03-31_01_2021-06-23_lab.xml'))
-        # pprint(xsd.to_dict('http://disclosure.edinet-fsa.go.jp/taxonomy/jppfs/2020-11-01/label/jppfs_2020-11-01_lab.xml'))
+        print(xsd.namespaces)
+
+        taxonomy_file_paths = filter(lambda x: x.endswith('.xml'), os.listdir(XBRL_DIR))
+        taxonomy_file_paths = filter(lambda x: not x.startswith('manifest'), taxonomy_file_paths)
+        taxonomy_file_paths = list(taxonomy_file_paths)
+        pprint(xsd.imports)
+        # pprint(xsd.to_dict(f'{XBRL_DIR}/{taxonomy_file_paths[0]}'))
+        pprint(xsd.to_dict('http://disclosure.edinet-fsa.go.jp/taxonomy/jppfs/2020-11-01/label/jppfs_2020-11-01_lab.xml'))
 
 
 class Taxonomy:
@@ -249,8 +254,9 @@ def main():
         print(taxonomy, taxonomy.description)
         print(f'  {xbrl.count_keys_by(taxonomy.name)}')
 
-    t = Taxonomies(
-        f'{XBRL_DIR}/jpcrp030000-asr-001_E04837-000_2021-03-31_01_2021-06-23.xsd')
+    xsd = list(filter(lambda x: x.endswith('.xsd'), os.listdir(XBRL_DIR)))
+    t = Taxonomies(f'{XBRL_DIR}/{xsd[0]}')
+    print(t)
 
     # コンテキスト一覧
     # for context in xbrl.get_contexts():
