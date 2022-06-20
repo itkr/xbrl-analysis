@@ -111,16 +111,31 @@ class Taxonomies:
         self.file_path = taxonomy_file_path
         self.load()
 
+    def get_linkbaseref(self):
+        with open(self.file_path, 'r') as f:
+            soup = BeautifulSoup(f, 'lxml')
+        return [link.get('xlink:href') for link in soup.find_all('link:linkbaseref')]
+
+    def get_local_taxonomy_file_paths(self):
+        taxonomy_file_paths = filter(
+            lambda x: x.endswith('.xml'), os.listdir(XBRL_DIR))
+        taxonomy_file_paths = filter(
+            lambda x: not x.startswith('manifest'), taxonomy_file_paths)
+        return [f'{XBRL_DIR}/{path}' for path in taxonomy_file_paths]
+
     def load(self):
         xsd = xmlschema.XMLSchema(self.file_path)
-        print(xsd.namespaces)
+        # for k, v in xsd.namespaces.items():
+        #     print(f'{k}\t{v}')
 
-        taxonomy_file_paths = filter(lambda x: x.endswith('.xml'), os.listdir(XBRL_DIR))
-        taxonomy_file_paths = filter(lambda x: not x.startswith('manifest'), taxonomy_file_paths)
-        taxonomy_file_paths = list(taxonomy_file_paths)
-        pprint(xsd.imports)
-        # pprint(xsd.to_dict(f'{XBRL_DIR}/{taxonomy_file_paths[0]}'))
-        pprint(xsd.to_dict('http://disclosure.edinet-fsa.go.jp/taxonomy/jppfs/2020-11-01/label/jppfs_2020-11-01_lab.xml'))
+        # pprint(xsd.imports)
+        print('---')
+        for i in sorted(self.get_local_taxonomy_file_paths()):
+            print(i)
+        pprint(xsd.to_dict(sorted(self.get_local_taxonomy_file_paths())[3]))
+        print('---')
+        for i in sorted(self.get_linkbaseref()):
+            print(i)
 
 
 class Taxonomy:
