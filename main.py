@@ -1,10 +1,10 @@
 import os
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from pprint import pprint
 from typing import Optional, Union
 
-import requests
 import xmlschema
 from bs4 import BeautifulSoup
 from edinet_xbrl.edinet_xbrl_parser import EdinetXbrlParser
@@ -19,7 +19,8 @@ from edinet_xbrl.edinet_xbrl_parser import EdinetXbrlParser
 # TODO: edinet_xbrlを使うのをやめる
 
 
-XBRL_DIR = './xbrl_dir'
+# XBRL_DIR = './xbrl_dir'
+XBRL_DIR = Path('.', 'xbrl_dir')
 
 
 @dataclass
@@ -107,32 +108,50 @@ class XBRLDataValueConverter:
 # TODO: クラス名
 class Taxonomies:
 
-    def __init__(self, taxonomy_file_path):
-        self.file_path = taxonomy_file_path
-        self.load()
+    def __init__(self, base_dir, taxonomy_file_path=None):
+        self._base_dir = base_dir
+        self._load(taxonomy_file_path or self._get_taxonomy_file_path())
+        self._print()
+
+    def _load(self, file_path):
+        # TODO: 二重管理解消1
+        with Path(file_path).open('r') as f:
+            self.soup = BeautifulSoup(f, 'lxml')
+        # TODO: 二重管理解消2
+        self.xsd = xmlschema.XMLSchema(file_path)
+
+    def _get_taxonomy_file_path(self):
+        xsd = list(filter(lambda x: x.endswith(
+            '.xsd'), os.listdir(self._base_dir)))
+        return Path(self._base_dir, xsd[0])
+
+    @property
+    def imports(self):
+        return self.xsd.imports
+
+    @property
+    def namespaces(self):
+        return self.xsd.namespaces
 
     def get_linkbaseref(self):
-        with open(self.file_path, 'r') as f:
-            soup = BeautifulSoup(f, 'lxml')
-        return [link.get('xlink:href') for link in soup.find_all('link:linkbaseref')]
+        return [link.get('xlink:href') for link in self.soup.find_all('link:linkbaseref')]
 
     def get_local_taxonomy_file_paths(self):
         taxonomy_file_paths = filter(
-            lambda x: x.endswith('.xml'), os.listdir(XBRL_DIR))
+            lambda x: x.endswith('.xml'), os.listdir(self._base_dir))
         taxonomy_file_paths = filter(
             lambda x: not x.startswith('manifest'), taxonomy_file_paths)
-        return [f'{XBRL_DIR}/{path}' for path in taxonomy_file_paths]
+        return [Path(self._base_dir, path) for path in taxonomy_file_paths]
 
-    def load(self):
-        xsd = xmlschema.XMLSchema(self.file_path)
-        # for k, v in xsd.namespaces.items():
+    def _print(self):
+        # for k, v in self.namespaces.items():
         #     print(f'{k}\t{v}')
-
-        # pprint(xsd.imports)
         print('---')
         for i in sorted(self.get_local_taxonomy_file_paths()):
             print(i)
-        pprint(xsd.to_dict(sorted(self.get_local_taxonomy_file_paths())[3]))
+        print('---')
+        pprint(self.xsd.to_dict(
+            sorted(self.get_local_taxonomy_file_paths())[3]))
         print('---')
         for i in sorted(self.get_linkbaseref()):
             print(i)
@@ -164,15 +183,14 @@ class Taxonomy:
 class XBRL:
 
     def __init__(self, xbrl_file_path):
-        self.xbrl_file_path = xbrl_file_path
-        self.load()
+        self._load(xbrl_file_path)
 
-    def load(self):
+    def _load(self, xbrl_file_path):
         # TODO: 二重管理解消 1
-        with open(self.xbrl_file_path, 'r') as f:
+        with Path(xbrl_file_path).open('r') as f:
             self.soup = BeautifulSoup(f.read(), 'lxml')
         # TODO: 二重管理解消 2
-        self.edinet_xbrl_object = EdinetXbrlParser().parse_file(self.xbrl_file_path)
+        self.edinet_xbrl_object = EdinetXbrlParser().parse_file(xbrl_file_path)
 
     def print_values(self, prefix=None):
         result = {}
@@ -262,20 +280,21 @@ class XBRL:
 
 
 def main():
-    xbrl = XBRL('public.xbrl')
+    xbrl_file_name = list(
+        filter(lambda x: x.endswith('.xbrl'), os.listdir(XBRL_DIR)))[0]
+    xbrl = XBRL(Path(XBRL_DIR, xbrl_file_name))
 
     # 利用タクソノミ一覧
     for taxonomy in xbrl.get_taxonomies():
         print(taxonomy, taxonomy.description)
         print(f'  {xbrl.count_keys_by(taxonomy.name)}')
 
-    xsd = list(filter(lambda x: x.endswith('.xsd'), os.listdir(XBRL_DIR)))
-    t = Taxonomies(f'{XBRL_DIR}/{xsd[0]}')
+    t = Taxonomies(XBRL_DIR)
     print(t)
 
     # コンテキスト一覧
     # for context in xbrl.get_contexts():
-    # print(context)
+    #     print(context)
 
     # 例
     # xbrl.get_data_by(taxonomy='jpdei', context_ref='context')
