@@ -1,4 +1,5 @@
-# pandas
 # jupyter
 edinet-xbrl
+light-progress
+pandas
 xmlschema

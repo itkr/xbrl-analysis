@@ -32,7 +32,7 @@ class Context:
     instant: Optional[str] = None
 
     def __repr__(self):
-        base = f'{self.__class__.__name__} {self.context_id}'
+        base = f'{self.__class__.__module__}.{self.__class__.__name__} {self.context_id}'
         if self.startDate:
             return f'<{base} start={self.startDate} end={self.endDate}>'
         elif self.instant:
@@ -106,35 +106,37 @@ class XBRLDataValueConverter:
 
 
 # TODO: クラス名
-class Taxonomies:
+class TaxonomyReference:
 
     def __init__(self, base_dir, taxonomy_file_path=None):
         self._base_dir = base_dir
-        self._load(taxonomy_file_path or self._get_taxonomy_file_path())
-        self._print()
+        from light_progress.commandline import Loading
+        with Loading(0):
+            self._load(taxonomy_file_path or self._get_taxonomy_file_path())
+        # self._print()
 
     def _load(self, file_path):
         # TODO: 二重管理解消1
         with Path(file_path).open('r') as f:
-            self.soup = BeautifulSoup(f, 'lxml')
+            self._soup = BeautifulSoup(f, 'lxml')
         # TODO: 二重管理解消2
-        self.xsd = xmlschema.XMLSchema(file_path)
+        self._xsd = xmlschema.XMLSchema(file_path)
 
     def _get_taxonomy_file_path(self):
-        xsd = list(filter(lambda x: x.endswith(
+        xsd_files = list(filter(lambda x: x.endswith(
             '.xsd'), os.listdir(self._base_dir)))
-        return Path(self._base_dir, xsd[0])
+        return Path(self._base_dir, xsd_files[0])
 
     @property
     def imports(self):
-        return self.xsd.imports
+        return self._xsd.imports
 
     @property
     def namespaces(self):
-        return self.xsd.namespaces
+        return self._xsd.namespaces
 
     def get_linkbaseref(self):
-        return [link.get('xlink:href') for link in self.soup.find_all('link:linkbaseref')]
+        return [link.get('xlink:href') for link in self._soup.find_all('link:linkbaseref')]
 
     def get_local_taxonomy_file_paths(self):
         taxonomy_file_paths = filter(
@@ -150,7 +152,7 @@ class Taxonomies:
         for i in sorted(self.get_local_taxonomy_file_paths()):
             print(i)
         print('---')
-        pprint(self.xsd.to_dict(
+        pprint(self._xsd.to_dict(
             sorted(self.get_local_taxonomy_file_paths())[3]))
         print('---')
         for i in sorted(self.get_linkbaseref()):
@@ -170,7 +172,7 @@ class Taxonomy:
         self.name = taxonomy_name
 
     def __repr__(self):
-        return f'<Taxonomy {self.name}>'
+        return f'<{self.__class__.__module__}.{self.__class__.__name__} {self.name}>'
 
     @property
     def description(self):
@@ -289,7 +291,7 @@ def main():
         print(taxonomy, taxonomy.description)
         print(f'  {xbrl.count_keys_by(taxonomy.name)}')
 
-    t = Taxonomies(XBRL_DIR)
+    t = TaxonomyReference(XBRL_DIR)
     print(t)
 
     # コンテキスト一覧
