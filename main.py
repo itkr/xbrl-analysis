@@ -280,6 +280,13 @@ class XBRL:
     def make_profit_and_loss_statement(self, context_ref=None):
         raise
 
+    def make_cash_flow(self, context_ref=None):
+        raise
+
+    make_bs = make_balance_sheet
+    make_pl = make_profit_and_loss_statement
+    make_cf = make_cash_flow
+
 
 def main():
     xbrl_file_name = list(
