@@ -113,7 +113,7 @@ class TaxonomyReference:
         from light_progress.commandline import Loading
         with Loading(0):
             self._load(taxonomy_file_path or self._get_taxonomy_file_path())
-        # self._print()
+        self._print()
 
     def _load(self, file_path):
         # TODO: 二重管理解消1
@@ -146,17 +146,27 @@ class TaxonomyReference:
         return [Path(self._base_dir, path) for path in taxonomy_file_paths]
 
     def _print(self):
-        # for k, v in self.namespaces.items():
-        #     print(f'{k}\t{v}')
-        print('---')
+        for k, v in self.namespaces.items():
+            print(f'{k}\t{v}')
+
+        print('------')
+        # ファイルベースのタクソノミファイルの表示
+        ## パス一覧
         for i in sorted(self.get_local_taxonomy_file_paths()):
             print(i)
         print('---')
-        pprint(self._xsd.to_dict(
-            sorted(self.get_local_taxonomy_file_paths())[3]))
-        print('---')
+        ## 抽出して読み込み
+        pprint(self._xsd.to_dict(sorted(self.get_local_taxonomy_file_paths())[3]))
+
+        print('------')
+        # リンクベースのタクソノミファイルの表示
+        ## パス一覧
         for i in sorted(self.get_linkbaseref()):
             print(i)
+        print('---')
+        ## 抽出して読み込み
+        # TODO: 読み取りエラーになったときの処理
+        # pprint(self._xsd.to_dict(sorted(self.get_linkbaseref())[5]))
 
 
 class Taxonomy:
