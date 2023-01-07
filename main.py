@@ -8,6 +8,7 @@ from typing import Optional, Union
 import xmlschema
 from bs4 import BeautifulSoup
 from edinet_xbrl.edinet_xbrl_parser import EdinetXbrlParser
+from light_progress import Loading, ProgressBar, puts
 
 # xbrl
 #     taxonomy
@@ -110,7 +111,6 @@ class TaxonomyReference:
 
     def __init__(self, base_dir, taxonomy_file_path=None):
         self._base_dir = base_dir
-        from light_progress.commandline import Loading
         with Loading(0):
             self._load(taxonomy_file_path or self._get_taxonomy_file_path())
         self._print()
@@ -206,7 +206,7 @@ class XBRL:
 
     def print_values(self, prefix=None):
         result = {}
-        for key in self.get_keys_by(prefix):
+        for key in ProgressBar.generation(self.get_keys_by(prefix)):
             data_list = self.edinet_xbrl_object.get_data_list(
                 key, auto_lower=False)
             try:
@@ -218,7 +218,7 @@ class XBRL:
             if taxonomy_name not in result.keys():
                 result[taxonomy_name] = []
 
-            print(key)
+            puts(key)
             # TODO: これだとkeyの改装を無視してtaxonomyごとにdataを入れてしまっている。これでいいか？
             result[taxonomy_name] = [XbrlData(
                 context_ref=data.get_context_ref(),
@@ -229,7 +229,7 @@ class XBRL:
                     taxonomy_name, key_name, data.get_value()),
                 unit_ref=data.get_unit_ref()) for data in data_list]
             for v in result[taxonomy_name]:
-                print(v)
+                puts(v)
 
         return result
 
