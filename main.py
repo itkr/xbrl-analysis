@@ -31,9 +31,13 @@ class IterableProgressBar(ProgressBar):
         super().__init__(len(iterable), **kwargs)
 
     def _loop(self):
-        for item in self.iterable:
-            self.forward()
-            yield item
+        self.start()
+        try:
+            for item in self.iterable:
+                self.forward()
+                yield item
+        finally:
+            self.finish()
 
     __iter__ = _loop
 
@@ -221,31 +225,31 @@ class XBRL:
     def print_values(self, prefix=None):
         result = {}
         # for key in ProgressBar.generation(self.get_keys_by(prefix)):
-        with IterableProgressBar(self.get_keys_by(prefix)) as progress_bar:
-            for key in progress_bar:
-                data_list = self.edinet_xbrl_object.get_data_list(
-                    key, auto_lower=False)
-                try:
-                    taxonomy_name, key_name = key.split(':')
-                except ValueError:
-                    # 'html', 'body' が入ってくる
-                    continue
+        progress_bar = IterableProgressBar(self.get_keys_by(prefix))
+        for key in progress_bar:
+            data_list = self.edinet_xbrl_object.get_data_list(
+                key, auto_lower=False)
+            try:
+                taxonomy_name, key_name = key.split(':')
+            except ValueError:
+                # 'html', 'body' が入ってくる
+                continue
 
-                if taxonomy_name not in result.keys():
-                    result[taxonomy_name] = []
+            if taxonomy_name not in result.keys():
+                result[taxonomy_name] = []
 
-                progress_bar.puts(key)
-                # TODO: これだとkeyの改装を無視してtaxonomyごとにdataを入れてしまっている。これでいいか？
-                result[taxonomy_name] = [XbrlData(
-                    context_ref=data.get_context_ref(),
-                    decimals=data.get_decimals(),
-                    key_name=key_name,
-                    taxonomy_name=taxonomy_name,
-                    value=XBRLDataValueConverter.convert_value(
-                        taxonomy_name, key_name, data.get_value()),
-                    unit_ref=data.get_unit_ref()) for data in data_list]
-                for v in result[taxonomy_name]:
-                    progress_bar.puts(v)
+            progress_bar.puts(key)
+            # TODO: これだとkeyの改装を無視してtaxonomyごとにdataを入れてしまっている。これでいいか？
+            result[taxonomy_name] = [XbrlData(
+                context_ref=data.get_context_ref(),
+                decimals=data.get_decimals(),
+                key_name=key_name,
+                taxonomy_name=taxonomy_name,
+                value=XBRLDataValueConverter.convert_value(
+                    taxonomy_name, key_name, data.get_value()),
+                unit_ref=data.get_unit_ref()) for data in data_list]
+            for v in result[taxonomy_name]:
+                progress_bar.puts(v)
 
         return result
 
