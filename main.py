@@ -3,13 +3,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from pprint import pprint
-from typing import Optional, Union
+from typing import Dict, Iterable, Optional, TypedDict, Union, List
 
 import xmlschema
 from bs4 import BeautifulSoup
 from edinet_xbrl.edinet_xbrl_parser import EdinetXbrlParser
-# from light_progress import Loading, ProgressBar, puts
-from light_progress import Loading, ProgressBar
+from light_progress import Loading, ProgressBar, widget
 
 # xbrl
 #     taxonomy
@@ -24,9 +23,17 @@ from light_progress import Loading, ProgressBar
 XBRL_DIR = Path('.', 'xbrl_dir')
 
 
+class IterableProgressBarOptions(TypedDict):
+    max_num: int
+    unit_num: int
+    widgets: List[widget.Widget]
+    format_str: str
+    colors: Dict[str, str]
+
+
 class IterableProgressBar(ProgressBar):
 
-    def __init__(self, iterable, **kwargs):
+    def __init__(self, iterable: Iterable, **kwargs: IterableProgressBarOptions):
         self.iterable = iterable
         super().__init__(len(iterable), **kwargs)
 
@@ -169,20 +176,21 @@ class TaxonomyReference:
 
         print('------')
         # ファイルベースのタクソノミファイルの表示
-        ## パス一覧
+        # パス一覧
         for i in sorted(self.get_local_taxonomy_file_paths()):
             print(i)
         print('---')
-        ## 抽出して読み込み
-        pprint(self._xsd.to_dict(sorted(self.get_local_taxonomy_file_paths())[3]))
+        # 抽出して読み込み
+        pprint(self._xsd.to_dict(
+            sorted(self.get_local_taxonomy_file_paths())[3]))
 
         print('------')
         # リンクベースのタクソノミファイルの表示
-        ## パス一覧
+        # パス一覧
         for i in sorted(self.get_linkbaseref()):
             print(i)
         print('---')
-        ## 抽出して読み込み
+        # 抽出して読み込み
         # TODO: 読み取りエラーになったときの処理
         # pprint(self._xsd.to_dict(sorted(self.get_linkbaseref())[5]))
 
@@ -339,7 +347,7 @@ def main():
     # xbrl.get_data_by(taxonomy='jpdei', context_ref='context')
 
     # 値の表示
-    # xbrl.print_values()
+    xbrl.print_values()
     # xbrl.print_values('jppfs')
 
 
